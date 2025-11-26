@@ -1,0 +1,200 @@
+import sqlite3
+import os
+import sys
+
+# Configuração do Banco de Dados 
+
+def conectar_banco():
+    """
+    Estabelece conexão com o banco de dados SQLite.
+    Retorna o objeto de conexão para ser usado nas operações.
+    """
+    conexao = sqlite3.connect("estoque.db")
+    return conexao
+
+def criar_tabela():
+    """
+    Cria a tabela 'produtos' no banco de dados caso ela não exista.
+    Estrutura: id (auto), nome, categoria, quantidade, preco.
+    """
+    conexao = conectar_banco()
+    cursor = conexao.cursor()
+    sql = """
+    CREATE TABLE IF NOT EXISTS produtos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nome TEXT NOT NULL,
+        categoria TEXT,
+        quantidade INTEGER NOT NULL,
+        preco REAL NOT NULL
+    )
+    """
+    cursor.execute(sql)
+    conexao.commit()
+    conexao.close()
+
+# Funções de Lógica de Negócio (CRUD)
+
+def adicionar_produto(nome, categoria, quantidade, preco):
+    """
+    Insere um novo produto no banco.
+    Validação: Impede a inserção de quantidades ou preços negativos.
+    """
+    # Validação de Regra de Negócio (Situação Real)
+    if quantidade < 0 or preco < 0:
+        print("\n[ERRO] Quantidade e preço devem ser valores positivos.")
+        return
+
+    conexao = conectar_banco()
+    cursor = conexao.cursor()
+    try:
+        cursor.execute("INSERT INTO produtos (nome, categoria, quantidade, preco) VALUES (?, ?, ?, ?)", 
+                       (nome, categoria, quantidade, preco))
+        conexao.commit()
+        print(f"\n[SUCESSO] Produto '{nome}' adicionado com sucesso!")
+    except Exception as e:
+        print(f"\n[ERRO] Falha ao adicionar produto no banco: {e}")
+    finally:
+        conexao.close()
+
+def listar_produtos():
+    """
+    Busca e exibe todos os produtos cadastrados formatados em tabela.
+    """
+    conexao = conectar_banco()
+    cursor = conexao.cursor()
+    cursor.execute("SELECT * FROM produtos")
+    produtos = cursor.fetchall()
+    conexao.close()
+
+    print("\n LISTA DE PRODUTOS")
+    print(f"{'ID':<5} {'Nome':<20} {'Categoria':<15} {'Qtd':<10} {'Preço':<10}")
+    print("-" * 65)
+    
+    if not produtos:
+        print("Nenhum produto cadastrado no sistema.")
+    else:
+        for p in produtos:
+            # p é uma tupla: (id, nome, categoria, quantidade, preco)
+            print(f"{p[0]:<5} {p[1]:<20} {p[2]:<15} {p[3]:<10} R$ {p[4]:<10.2f}")
+    print("-" * 65)
+
+def atualizar_produto(id_produto, nova_quantidade, novo_preco):
+    """
+    Atualiza a quantidade e o preço de um produto específico pelo ID.
+    Validação: Impede atualização para valores negativos.
+    """
+    # Validação de Regra de Negócio
+    if nova_quantidade < 0 or novo_preco < 0:
+        print("\n[ERRO] Quantidade e preço devem ser valores positivos.")
+        return
+
+    conexao = conectar_banco()
+    cursor = conexao.cursor()
+    try:
+        cursor.execute("UPDATE produtos SET quantidade = ?, preco = ? WHERE id = ?", 
+                       (nova_quantidade, novo_preco, id_produto))
+        conexao.commit()
+        
+        if cursor.rowcount > 0:
+            print(f"\n[SUCESSO] Produto ID {id_produto} atualizado!")
+        else:
+            print(f"\n[AVISO] Produto ID {id_produto} não encontrado.")
+            
+    except Exception as e:
+        print(f"\n[ERRO] Falha ao atualizar: {e}")
+    finally:
+        conexao.close()
+
+def deletar_produto(id_produto):
+    """
+    Remove um produto do banco de dados baseado no ID fornecido.
+    """
+    conexao = conectar_banco()
+    cursor = conexao.cursor()
+    try:
+        cursor.execute("DELETE FROM produtos WHERE id = ?", (id_produto,))
+        conexao.commit()
+        
+        if cursor.rowcount > 0:
+            print(f"\n[SUCESSO] Produto ID {id_produto} removido do sistema.")
+        else:
+            print(f"\n[AVISO] Produto ID {id_produto} não encontrado.")
+            
+    except Exception as e:
+        print(f"\n[ERRO] Falha ao deletar: {e}")
+    finally:
+        conexao.close()
+
+# Interface do Usuário (Menu)
+
+def limpar_tela():
+    """Limpa o console para melhorar a visualização do menu."""
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+def menu():
+    """
+    Função principal que gerencia o loop do menu e a interação com o usuário.
+    """
+    criar_tabela() # Garante a inicialização do banco
+    
+    while True:
+        limpar_tela()
+        print("\n===========================================================")
+        print("   K.O.K.U.S.H.I.B.O.   ") 
+        print(" Kit Organizacional de Kardex Unificado: ")
+        print(" Sistema Híbrido de Inventário e Banco Otimizado")
+        print("===========================================================")
+        print("1. Adicionar Novo Produto")
+        print("2. Listar Todos os Produtos")
+        print("3. Atualizar Produto (Qtd/Preço)")
+        print("4. Remover Produto")
+        print("5. Sair")
+        print("===========================================================")
+        
+        opcao = input("\n Escolha uma opção: ")
+
+        if opcao == '1':
+            print("\n NOVO PRODUTO")
+            nome = input("Nome do produto: ")
+            cat = input("Categoria: ")
+            try:
+                qtd = int(input("Quantidade: "))
+                preco = float(input("Preço (use ponto para centavos): "))
+                adicionar_produto(nome, cat, qtd, preco)
+            except ValueError:
+                print("\n [ERRO] Entrada inválida! Quantidade deve ser inteiro e preço numérico.")
+        
+        elif opcao == '2':
+            listar_produtos()
+        
+        elif opcao == '3':
+            listar_produtos()
+            try:
+                print("\n ATUALIZAR DADOS")
+                id_prod = int(input("Digite o ID do produto a atualizar: "))
+                qtd = int(input("Nova Quantidade: "))
+                preco = float(input("Novo Preço: "))
+                atualizar_produto(id_prod, qtd, preco)
+            except ValueError:
+                print("\n [ERRO] Digite apenas números válidos.")
+
+        elif opcao == '4':
+            listar_produtos()
+            try:
+                print("\n REMOVER REGISTRO")
+                id_prod = int(input("Digite o ID do produto a remover: "))
+                deletar_produto(id_prod)
+            except ValueError:
+                print("\n [ERRO] O ID deve ser um número inteiro.")
+
+        elif opcao == '5':
+            print("\n Encerrando o sistema. ")
+            break
+        
+        else:
+            print("\n [!] Opção inválida! Tente novamente.")
+        
+        input("\n Pressione Enter para continuar.")
+
+if __name__ == "__main__":
+    menu()
