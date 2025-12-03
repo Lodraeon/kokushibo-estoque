@@ -2,7 +2,7 @@
 **K**it **O**rganizacional de **K**ardex **U**nificado: **S**istema **H**íbrido de **I**nventário e **B**anco **O**timizado.
 
 ## Sobre o Projeto
-Projeto Integrador desenvolvido para o curso de Engenharia de Software da UNISA (Laboratório de Programação). O objetivo é fornecer uma solução simples e eficiente para controle de estoque em pequenas empresas e ONGs.
+Projeto Integrador desenvolvido para o curso de Engenharia de Software. O objetivo é fornecer uma solução simples e eficiente para controle de estoque em pequenas empresas e ONGs.
 
 ## Tecnologias Utilizadas
 * **Linguagem:** Python 3
